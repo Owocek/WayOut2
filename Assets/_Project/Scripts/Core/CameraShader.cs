@@ -1,21 +1,21 @@
-// Plik: CameraShader.cs
 using UnityEngine;
 
-[ExecuteInEditMode]
+[RequireComponent(typeof(Camera))]
 public class CameraShader : MonoBehaviour
 {
     public Shader replacementShader;
 
+    Camera _cam;
+
     void OnEnable()
     {
-        if (replacementShader != null)
-        {
-            GetComponent<Camera>().SetReplacementShader(replacementShader, "RenderType");
-        }
+        _cam = GetComponent<Camera>();
+        if (_cam && replacementShader)
+            _cam.SetReplacementShader(replacementShader, "");
     }
 
     void OnDisable()
     {
-        GetComponent<Camera>().ResetReplacementShader();
+        if (_cam) _cam.ResetReplacementShader();
     }
 }
