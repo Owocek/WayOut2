@@ -5,77 +5,78 @@ using UnityEngine.Rendering.Universal;
 public class Vision : MonoBehaviour
 {
     [Header("Refs")]
-    public Camera visionCamera; // VisionCamera
-    public UnityEngine.Rendering.Universal.DecalProjector visionDecal; // VisionDecal
-    public Material visionMat;  // VisionCone_Material_SG
-    public RenderTexture visionRT; // Vision_RT
+    public Camera visionCamera;                       // VisionCamera
+    public DecalProjector visionDecal;                // VisionDecal
+    public RenderTexture visionRT;                    // Vision_RT
 
     [Header("Params")]
     public float viewRadius = 20f;
     public float epsilon = 0.005f;
 
-    // Uwaga: te nazwy MUSZĄ pokrywać się z "Reference" w Shader Graph
+    // Nazwy MUSZĄ zgadzać się z "Reference" w Shader Graph
     static readonly int DepthTexID = Shader.PropertyToID("_DepthTexture");
-    static readonly int VP0 = Shader.PropertyToID("_VisionVP0");
-    static readonly int VP1 = Shader.PropertyToID("_VisionVP1");
-    static readonly int VP2 = Shader.PropertyToID("_VisionVP2");
-    static readonly int VP3 = Shader.PropertyToID("_VisionVP3");
-    static readonly int CamPosID = Shader.PropertyToID("_VisionCamPos");
-    static readonly int RadiusID = Shader.PropertyToID("_Radius");
-    static readonly int EpsilonID = Shader.PropertyToID("_Epsilon");
+    static readonly int VP0_ID     = Shader.PropertyToID("_VisionVP0");
+    static readonly int VP1_ID     = Shader.PropertyToID("_VisionVP1");
+    static readonly int VP2_ID     = Shader.PropertyToID("_VisionVP2");
+    static readonly int VP3_ID     = Shader.PropertyToID("_VisionVP3");
+    static readonly int CamPosID   = Shader.PropertyToID("_VisionCamPos");
+    static readonly int RadiusID   = Shader.PropertyToID("_Radius");
+    static readonly int EpsID      = Shader.PropertyToID("_Epsilon");
 
     void Reset()
     {
-        if (!visionCamera) visionCamera = GetComponentInChildren<Camera>();
-        if (!visionDecal) visionDecal = GetComponentInChildren<UnityEngine.Rendering.Universal.DecalProjector>();
+        if (!visionCamera) visionCamera = GetComponentInChildren<Camera>(true);
+        if (!visionDecal)  visionDecal  = GetComponentInChildren<DecalProjector>(true);
     }
 
-    void OnEnable()
-    {
-        Hookup();
-    }
-
-    void OnValidate()
-    {
-        Hookup();
-    }
+    void OnEnable()  { Hookup(); }
+    void OnValidate(){ Hookup(); }
 
     void Hookup()
     {
-        if (!visionCamera) return;
-
-        if (visionRT && visionCamera.targetTexture != visionRT)
+        if (visionCamera && visionRT && visionCamera.targetTexture != visionRT)
             visionCamera.targetTexture = visionRT;
-
-        if (!visionDecal)
-            visionDecal = GetComponentInChildren<UnityEngine.Rendering.Universal.DecalProjector>();
-
-        if (!visionMat && visionDecal)
-            visionMat = visionDecal.material;
-
-        if (visionMat && visionRT)
-            visionMat.SetTexture(DepthTexID, visionRT);
     }
 
     void Update()
     {
-        if (!visionCamera || !visionMat || !visionDecal) return;
+        if (!visionCamera || !visionDecal) return;
 
+        // zawsze pracujemy na aktualnym materiale z Decal Projectora
+        var mat = visionDecal.material;
+        if (!mat) return;
+
+        // RT do materiału
+        if (visionRT) mat.SetTexture(DepthTexID, visionRT);
+
+        // VP = GPUProjection * View
         var proj = GL.GetGPUProjectionMatrix(visionCamera.projectionMatrix, true);
         Matrix4x4 vp = proj * visionCamera.worldToCameraMatrix;
 
-        visionMat.SetVector(VP0, vp.GetRow(0));
-        visionMat.SetVector(VP1, vp.GetRow(1));
-        visionMat.SetVector(VP2, vp.GetRow(2));
-        visionMat.SetVector(VP3, vp.GetRow(3));
-        visionMat.SetVector(CamPosID, visionCamera.transform.position);
-        visionMat.SetFloat(RadiusID, viewRadius);
-        visionMat.SetFloat(EpsilonID, epsilon);
+        // parametry do materiału
+        mat.SetVector(VP0_ID, vp.GetRow(0));
+        mat.SetVector(VP1_ID, vp.GetRow(1));
+        mat.SetVector(VP2_ID, vp.GetRow(2));
+        mat.SetVector(VP3_ID, vp.GetRow(3));
+        mat.SetVector(CamPosID, visionCamera.transform.position);
+        mat.SetFloat(RadiusID, viewRadius);
+        mat.SetFloat(EpsID, epsilon);
 
-        // Skala i pozycja Decala
+        // rozmiar i pozycja decal'a (top-down)
         visionDecal.size = new Vector3(viewRadius * 2f, viewRadius * 2f, 100f);
-        var t = visionDecal.transform;
-        var pos = transform.position;
-        t.SetPositionAndRotation(new Vector3(pos.x, 10f, pos.z), Quaternion.Euler(90f, 0f, 0f));
+        var p = transform.position;
+        visionDecal.transform.SetPositionAndRotation(
+            new Vector3(p.x, 10f, p.z),
+            Quaternion.Euler(90f, 0f, 0f)
+        );
     }
+
+#if UNITY_EDITOR
+    [ContextMenu("Log Vision Material State")]
+    void LogMat()
+    {
+        var mat = visionDecal ? visionDecal.material : null;
+        Debug.Log($"Vision mat={(mat?mat.name:"null")} RT={(visionRT?visionRT.name:"null")} cam={(visionCamera?visionCamera.name:"null")}");
+    }
+#endif
 }

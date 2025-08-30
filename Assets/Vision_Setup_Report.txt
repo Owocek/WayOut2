@@ -1,0 +1,37 @@
+﻿=== Vision Setup Report ===
+Unity: 6000.0.26f1
+Active Scene: SampleScene
+
+[RenderPipelineAsset]
+RPA: PC_RPAsset (UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset)
+RPA Path: Assets/Settings/PC_RPAsset.asset
+HDR=True, MSAA=1, RenderScale=1
+
+[RendererDataList] count=1, defaultIndex=0
+ - [0] PC_Renderer (UniversalRendererData) path=Assets/Settings/PC_Renderer.asset
+    feature: ScreenSpaceAmbientOcclusion (ScreenSpaceAmbientOcclusion)
+    feature: DecalRendererFeature (DecalRendererFeature)
+    has Decal feature: True
+    RenderingMode: Deferred
+
+[Cameras]
+ - Main Camera: type=Ortho, size/fov=5, cullingMask=Everything, targetTexture=null, rendererType=UniversalRenderer
+ - VisionCamera: type=Persp, size/fov=60, cullingMask=Obstacles, targetTexture=Vision_RT, rendererType=UniversalRenderer
+
+[DecalProjectors]
+ - VisionDecal: size=(40.00, 40.00, 100.00), pos=(0.00, 10.00, 0.00), rot=(90.00, 0.00, 0.00), layer=Default
+   mat=VisionCone_Material_SG, shader=Shader Graphs/VisionCone_SG
+   has _DepthTexture = True
+   has _VisionVP0 = True
+   has _VisionVP1 = True
+   has _VisionVP2 = True
+   has _VisionVP3 = True
+   has _VisionCamPos = True
+   has _Radius = True
+   has _Epsilon = True
+
+[RenderTextures]
+ - Vision_RT: 1024x1024 fmt=R8G8B8A8_UNorm depth=D32_SFloat_S8_UInt AA=1 path=Assets/_Project/Textures/Vision_RT.renderTexture
+
+[MeshRenderers sample: ReceiveDecals]
+ - Player (layer=Default): mat=Lit, shader=Universal Render Pipeline/Lit, ReceiveDecalsProp=False val=-
